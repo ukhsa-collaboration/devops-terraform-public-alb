@@ -94,8 +94,8 @@ Egress rules are derived from backend target group ports. By default they allow 
 | <a name="input_subnets"></a> [subnets](#input\_subnets) | Subnet IDs where the ALB will be placed. | `list(string)` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to the ALB resources. | `map(string)` | `{}` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID where the ALB will be created. | `string` | n/a | yes |
-| <a name="input_waf_managed_rules"></a> [waf\_managed\_rules](#input\_waf\_managed\_rules) | Optional map of AWS managed WAF rule group name to enforcement state. Set a rule to false to switch it to count mode. Unspecified managed rules are enforced by default. | `map(bool)` | `{}` | no |
 | <a name="input_waf_managed_rule_overrides"></a> [waf\_managed\_rule\_overrides](#input\_waf\_managed\_rule\_overrides) | Optional map of AWS managed WAF rule group name to managed rule name to override action. Supported actions are count, allow, and block. Unspecified managed rules inherit their parent managed rule group behavior. | `map(map(string))` | `{}` | no |
+| <a name="input_waf_managed_rules"></a> [waf\_managed\_rules](#input\_waf\_managed\_rules) | Optional map of AWS managed WAF rule group name to enforcement state. Set a rule to false to switch it to count mode. Unspecified managed rules are enforced by default. | `map(bool)` | `{}` | no |
 
 ## Outputs
 
