@@ -22,6 +22,16 @@ module "alb" {
   certificate_arn         = "arn:aws:acm:eu-west-2:123456789012:certificate/11111111-2222-3333-4444-555555555555"
   access_logs_bucket_name = "precreated-alb-access-logs"
 
+  waf_managed_rules = {
+    AWSManagedRulesAmazonIpReputationList = false # count mode
+  }
+
+  waf_managed_rule_overrides = {
+    AWSManagedRulesCommonRuleSet = {
+      NoUserAgent_HEADER = "count"
+    }
+  }
+
   egress_security_group_ids = {
     app = "sg-0123456789abcdef0"
     cms = "sg-11111111111111111"

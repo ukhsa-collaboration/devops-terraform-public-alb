@@ -36,6 +36,52 @@ variable "enable_waf" {
   default     = true
 }
 
+variable "waf_managed_rules" {
+  description = "Optional map of AWS managed WAF rule group name to enforcement state. Set a rule to false to switch it to count mode. Unspecified managed rules are enforced by default."
+  type        = map(bool)
+  default     = {}
+
+  validation {
+    condition = length(setsubtract(
+      toset(keys(var.waf_managed_rules)),
+      toset([
+        "AWSManagedRulesAmazonIpReputationList",
+        "AWSManagedRulesCommonRuleSet",
+        "AWSManagedRulesKnownBadInputsRuleSet",
+      ])
+    )) == 0
+    error_message = "waf_managed_rules keys must be one of AWSManagedRulesAmazonIpReputationList, AWSManagedRulesCommonRuleSet, or AWSManagedRulesKnownBadInputsRuleSet."
+  }
+}
+
+variable "waf_managed_rule_overrides" {
+  description = "Optional map of AWS managed WAF rule group name to managed rule name to override action. Supported actions are count, allow, and block. Unspecified managed rules inherit their parent managed rule group behavior."
+  type        = map(map(string))
+  default     = {}
+
+  validation {
+    condition = length(setsubtract(
+      toset(keys(var.waf_managed_rule_overrides)),
+      toset([
+        "AWSManagedRulesAmazonIpReputationList",
+        "AWSManagedRulesCommonRuleSet",
+        "AWSManagedRulesKnownBadInputsRuleSet",
+      ])
+    )) == 0
+    error_message = "waf_managed_rule_overrides keys must be one of AWSManagedRulesAmazonIpReputationList, AWSManagedRulesCommonRuleSet, or AWSManagedRulesKnownBadInputsRuleSet."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for managed_rule_group in values(var.waf_managed_rule_overrides) : [
+        for action in values(managed_rule_group) :
+        contains(["count", "allow", "block"], action)
+      ]
+    ]))
+    error_message = "waf_managed_rule_overrides values must be one of count, allow, or block."
+  }
+}
+
 variable "access_logs_bucket_name" {
   description = "Name of the pre-created S3 bucket that receives ALB access logs."
   type        = string
