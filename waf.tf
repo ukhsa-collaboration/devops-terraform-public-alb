@@ -1,6 +1,29 @@
 locals {
   waf_name        = "${var.name}-waf"
   waf_metric_name = replace(substr(local.waf_name, 0, 128), "-", "")
+  waf_managed_rule_enforcement_defaults = {
+    AWSManagedRulesAmazonIpReputationList = true
+    AWSManagedRulesCommonRuleSet          = true
+    AWSManagedRulesKnownBadInputsRuleSet  = true
+  }
+  waf_managed_rule_enforcement = merge(local.waf_managed_rule_enforcement_defaults, var.waf_managed_rules)
+  waf_managed_rule_definitions = [
+    {
+      name          = "AWSManagedRulesAmazonIpReputationList"
+      priority      = 10
+      metric_suffix = "IpReputation"
+    },
+    {
+      name          = "AWSManagedRulesCommonRuleSet"
+      priority      = 20
+      metric_suffix = "Common"
+    },
+    {
+      name          = "AWSManagedRulesKnownBadInputsRuleSet"
+      priority      = 30
+      metric_suffix = "KnownBadInputs"
+    },
+  ]
 }
 
 resource "aws_wafv2_web_acl" "this" {
@@ -13,69 +36,62 @@ resource "aws_wafv2_web_acl" "this" {
     allow {}
   }
 
-  rule {
-    name     = "AWSManagedRulesAmazonIpReputationList"
-    priority = 10
+  dynamic "rule" {
+    for_each = local.waf_managed_rule_definitions
 
-    override_action {
-      none {}
-    }
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesAmazonIpReputationList"
-        vendor_name = "AWS"
+      override_action {
+        dynamic "none" {
+          for_each = local.waf_managed_rule_enforcement[rule.value.name] ? [1] : []
+          content {}
+        }
+
+        dynamic "count" {
+          for_each = local.waf_managed_rule_enforcement[rule.value.name] ? [] : [1]
+          content {}
+        }
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${local.waf_metric_name}IpReputation"
-      sampled_requests_enabled   = true
-    }
-  }
+      statement {
+        managed_rule_group_statement {
+          name        = rule.value.name
+          vendor_name = "AWS"
 
-  rule {
-    name     = "AWSManagedRulesCommonRuleSet"
-    priority = 20
+          dynamic "rule_action_override" {
+            for_each = lookup(var.waf_managed_rule_overrides, rule.value.name, {})
 
-    override_action {
-      none {}
-    }
+            content {
+              name = rule_action_override.key
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesCommonRuleSet"
-        vendor_name = "AWS"
+              action_to_use {
+                dynamic "count" {
+                  for_each = rule_action_override.value == "count" ? [1] : []
+                  content {}
+                }
+
+                dynamic "allow" {
+                  for_each = rule_action_override.value == "allow" ? [1] : []
+                  content {}
+                }
+
+                dynamic "block" {
+                  for_each = rule_action_override.value == "block" ? [1] : []
+                  content {}
+                }
+              }
+            }
+          }
+        }
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${local.waf_metric_name}Common"
-      sampled_requests_enabled   = true
-    }
-  }
-
-  rule {
-    name     = "AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 30
-
-    override_action {
-      none {}
-    }
-
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesKnownBadInputsRuleSet"
-        vendor_name = "AWS"
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${local.waf_metric_name}${rule.value.metric_suffix}"
+        sampled_requests_enabled   = true
       }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${local.waf_metric_name}KnownBadInputs"
-      sampled_requests_enabled   = true
     }
   }
 
