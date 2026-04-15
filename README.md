@@ -33,7 +33,7 @@ Defaults include:
 - WAFv2 enabled by default with AWS managed baseline rule groups, each of which can be switched between enforcement and count mode independently
 
 ### Per-Backend Egress Restriction
-Egress rules are derived from backend target group ports. By default they allow traffic to `0.0.0.0/0`, but you can restrict individual backends to specific security groups via `egress_security_group_ids`.
+Egress rules are derived from backend target group ports and deduplicated by effective destination. By default they allow traffic to `0.0.0.0/0`, but you can restrict individual backends to specific security groups via `egress_security_group_ids`.
 
 ## What it does
 
