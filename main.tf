@@ -58,18 +58,24 @@ locals {
       }]
     }
   }
+  derived_security_group_egress_rules = {
+    for rule in distinct([
+      for backend_key, target_group in local.target_groups : jsonencode({
+        rule_name = lookup(var.egress_security_group_ids, backend_key, null) == null ? "backend_port_${target_group.port}" : "backend_port_${target_group.port}_sg_${lookup(var.egress_security_group_ids, backend_key, null)}"
+        rule = {
+          from_port                    = target_group.port
+          to_port                      = target_group.port
+          ip_protocol                  = "tcp"
+          description                  = "Application traffic to backend targets"
+          cidr_ipv4                    = lookup(var.egress_security_group_ids, backend_key, null) == null ? "0.0.0.0/0" : null
+          referenced_security_group_id = lookup(var.egress_security_group_ids, backend_key, null)
+        }
+      })
+    ]) :
+    jsondecode(rule).rule_name => jsondecode(rule).rule
+  }
   merged_security_group_egress_rules = merge(
-    {
-      for backend_key, target_group in local.target_groups :
-      "backend_${backend_key}" => {
-        from_port                    = target_group.port
-        to_port                      = target_group.port
-        ip_protocol                  = "tcp"
-        description                  = "Application traffic to backend targets"
-        cidr_ipv4                    = lookup(var.egress_security_group_ids, backend_key, null) == null ? "0.0.0.0/0" : null
-        referenced_security_group_id = lookup(var.egress_security_group_ids, backend_key, null)
-      }
-    },
+    local.derived_security_group_egress_rules,
     var.security_group_egress_rules
   )
   effective_security_group_egress_rules = {

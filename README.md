@@ -33,7 +33,7 @@ Defaults include:
 - WAFv2 enabled by default with AWS managed baseline rule groups, each of which can be switched between enforcement and count mode independently
 
 ### Per-Backend Egress Restriction
-Egress rules are derived from backend target group ports. By default they allow traffic to `0.0.0.0/0`, but you can restrict individual backends to specific security groups via `egress_security_group_ids`.
+Egress rules are derived from backend target group ports and deduplicated by effective destination. By default they allow traffic to `0.0.0.0/0`, but you can restrict individual backends to specific security groups via `egress_security_group_ids`.
 
 ## What it does
 
@@ -49,26 +49,26 @@ Egress rules are derived from backend target group ports. By default they allow 
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0 |
 
 ## Modules
 
 | Name | Source | Version |
-|------|--------|---------|
+| ---- | ------ | ------- |
 | <a name="module_this"></a> [this](#module\_this) | terraform-aws-modules/alb/aws | v10.5.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [aws_lb_listener_rule.http_redirect_served_hosts](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener_rule) | resource |
 | [aws_wafv2_web_acl.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl) | resource |
 | [aws_wafv2_web_acl_association.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl_association) | resource |
@@ -76,7 +76,7 @@ Egress rules are derived from backend target group ports. By default they allow 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_access_logs_bucket_name"></a> [access\_logs\_bucket\_name](#input\_access\_logs\_bucket\_name) | Name of the pre-created S3 bucket that receives ALB access logs. | `string` | n/a | yes |
 | <a name="input_access_logs_prefix"></a> [access\_logs\_prefix](#input\_access\_logs\_prefix) | Optional S3 key prefix for ALB access logs. | `string` | `"alb"` | no |
 | <a name="input_backends"></a> [backends](#input\_backends) | Backend definitions for the public ALB. Each declares the frontend hostnames it serves and the target group configuration. | `map(any)` | n/a | yes |
@@ -100,7 +100,7 @@ Egress rules are derived from backend target group ports. By default they allow 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_access_logs_bucket_name"></a> [access\_logs\_bucket\_name](#output\_access\_logs\_bucket\_name) | S3 bucket name used for ALB access logs. |
 | <a name="output_alb_arn"></a> [alb\_arn](#output\_alb\_arn) | ARN of the ALB. |
 | <a name="output_alb_dns_name"></a> [alb\_dns\_name](#output\_alb\_dns\_name) | DNS name of the ALB. |

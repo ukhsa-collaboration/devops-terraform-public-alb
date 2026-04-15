@@ -63,5 +63,18 @@ module "alb" {
         }
       }
     }
+    frontend = {
+      domains = [
+        "example.com",
+      ]
+      target_group = {
+        name_prefix = "frnt"
+        port        = 80
+        health_check = {
+          path = "/healthz"
+        }
+      }
+    }
+
   }
 }
