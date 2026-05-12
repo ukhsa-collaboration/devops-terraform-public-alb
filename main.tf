@@ -58,20 +58,40 @@ locals {
       }]
     }
   }
+
+  target_group_health_check_ports = {
+    for backend_key, target_group in local.target_groups :
+    backend_key => (
+      coalesce(try(tostring(target_group.health_check.port), null), "traffic-port") == "traffic-port"
+      ? target_group.port
+      : tonumber(target_group.health_check.port)
+    )
+  }
+
+  # Health check ports can differ from traffic ports, so include both in egress
+  target_group_egress_ports = {
+    for backend_key, target_group in local.target_groups :
+    backend_key => distinct([
+      target_group.port,
+      local.target_group_health_check_ports[backend_key]
+    ])
+  }
   derived_security_group_egress_rules = {
-    for rule in distinct([
-      for backend_key, target_group in local.target_groups : jsonencode({
-        rule_name = lookup(var.egress_security_group_ids, backend_key, null) == null ? "backend_port_${target_group.port}" : "backend_port_${target_group.port}_sg_${lookup(var.egress_security_group_ids, backend_key, null)}"
-        rule = {
-          from_port                    = target_group.port
-          to_port                      = target_group.port
-          ip_protocol                  = "tcp"
-          description                  = "Application traffic to backend targets"
-          cidr_ipv4                    = lookup(var.egress_security_group_ids, backend_key, null) == null ? "0.0.0.0/0" : null
-          referenced_security_group_id = lookup(var.egress_security_group_ids, backend_key, null)
-        }
-      })
-    ]) :
+    for rule in distinct(flatten([
+      for backend_key, target_group in local.target_groups : [
+        for port in local.target_group_egress_ports[backend_key] : jsonencode({
+          rule_name = lookup(var.egress_security_group_ids, backend_key, null) == null ? "backend_port_${port}" : "backend_port_${port}_sg_${lookup(var.egress_security_group_ids, backend_key, null)}"
+          rule = {
+            from_port                    = port
+            to_port                      = port
+            ip_protocol                  = "tcp"
+            description                  = "Application and health check traffic to backend targets"
+            cidr_ipv4                    = lookup(var.egress_security_group_ids, backend_key, null) == null ? "0.0.0.0/0" : null
+            referenced_security_group_id = lookup(var.egress_security_group_ids, backend_key, null)
+          }
+        })
+      ]
+    ])) :
     jsondecode(rule).rule_name => jsondecode(rule).rule
   }
   merged_security_group_egress_rules = merge(
